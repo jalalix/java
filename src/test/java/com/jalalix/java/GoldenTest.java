@@ -1,4 +1,4 @@
-package dev.jalalix;
+package com.jalalix.java;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;

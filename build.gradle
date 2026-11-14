@@ -1,9 +1,9 @@
 plugins {
     id 'java-library'
-    id 'maven-publish'
+    id 'com.vanniktech.maven.publish' version '0.37.0'
 }
 
-group = 'dev.jalalix'
+group = 'com.jalalix.java'
 version = '0.1.0'
 
 repositories {
@@ -21,8 +21,6 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
     }
-    withSourcesJar()
-    withJavadocJar()
 }
 
 tasks.named('test') {
@@ -35,11 +33,55 @@ tasks.named('processTestResources') {
     }
 }
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            artifactId = 'jalalix'
-            from components.java
+tasks.withType(Javadoc).configureEach {
+    options.addStringOption('Xdoclint:all,-missing', '-quiet')
+}
+
+def canSign = (
+    findProperty('signing.gnupg.keyName') != null ||
+    findProperty('signing.keyId') != null ||
+    findProperty('signingInMemoryKey') != null ||
+    System.getenv('ORG_GRADLE_PROJECT_signingInMemoryKey') != null
+)
+
+mavenPublishing {
+    publishToMavenCentral()
+    if (canSign) {
+        signAllPublications()
+    }
+
+    coordinates('com.jalalix.java', 'jalalix', version.toString())
+
+    pom {
+        name = 'JalaliX'
+        description = 'Jalali (Persian / Shamsi) calendar for Java 17+.'
+        inceptionYear = '2025'
+        url = 'https://jalalix.com'
+        licenses {
+            license {
+                name = 'MIT License'
+                url = 'https://opensource.org/licenses/MIT'
+                distribution = 'repo'
+            }
         }
+        developers {
+            developer {
+                id = 'maklavani'
+                name = 'Hossein Maklavani'
+                url = 'https://github.com/maklavani'
+            }
+        }
+        scm {
+            url = 'https://github.com/jalalix/java'
+            connection = 'scm:git:git://github.com/jalalix/java.git'
+            developerConnection = 'scm:git:ssh://git@github.com/jalalix/java.git'
+        }
+    }
+}
+
+if (canSign && findProperty('signing.gnupg.keyName') != null) {
+    // Prefer gpg CLI so signatures include issuer fingerprint (required by Central).
+    signing {
+        useGpgCmd()
     }
 }

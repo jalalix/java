@@ -3,8 +3,8 @@
 Jalali (Persian / Shamsi) calendar for Java 17+. Pure `java.time` (ZoneId), no runtime dependencies beyond the JDK.
 
 ```java
-import dev.jalalix.JalaliX;
-import dev.jalalix.JalaliFormatOptions;
+import com.jalalix.java.JalaliX;
+import com.jalalix.java.JalaliFormatOptions;
 
 JalaliX date = JalaliX.create("2025-02-25");
 
@@ -16,11 +16,24 @@ JalaliX.parseJalali("1403/12/07").toISODate(); // 2025-02-25
 
 ## Install
 
-Maven / Gradle coordinates: `dev.jalalix:jalalix:0.1.0`
+Maven / Gradle coordinates: `com.jalalix.java:jalalix:0.1.0`
+
+```xml
+<dependency>
+  <groupId>com.jalalix.java</groupId>
+  <artifactId>jalalix</artifactId>
+  <version>0.1.0</version>
+</dependency>
+```
+
+```kotlin
+implementation("com.jalalix.java:jalalix:0.1.0")
+```
 
 ```bash
 ./gradlew test
 ./gradlew publishToMavenLocal
+./gradlew publishToMavenCentral
 ```
 
 ## Timezone
