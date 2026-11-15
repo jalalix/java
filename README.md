@@ -20,18 +20,18 @@ JalaliX.parseJalali("1403/12/07").toISODate(); // 2025-02-25
 
 ## Install
 
-Maven / Gradle coordinates: `com.jalalix.java:jalalix:0.1.0`
+Maven / Gradle coordinates: `com.jalalix.java:jalalix:0.2.0`
 
 ```xml
 <dependency>
   <groupId>com.jalalix.java</groupId>
   <artifactId>jalalix</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
 </dependency>
 ```
 
 ```kotlin
-implementation("com.jalalix.java:jalalix:0.1.0")
+implementation("com.jalalix.java:jalalix:0.2.0")
 ```
 
 ```bash
