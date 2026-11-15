@@ -19,19 +19,29 @@ import java.util.regex.Pattern;
 
 /**
  * Jalali (Persian / Shamsi) calendar on a UTC millisecond instant + IANA {@link ZoneId}.
- * Pure {@code java.time} port of {@code @jalalix/typescript} — same algorithm and camelCase API.
+ * Pure {@code java.time} port of {@code @jalalix/typescript} - same algorithm and camelCase API.
  */
 public final class JalaliX implements Cloneable {
 
-	/** Persian digit characters {@code ۰}–{@code ۹}. */
+	// Persian digit characters {@code ۰}–{@code ۹}.
 	public static final String[] persianNumbers = {"۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"};
+
+	// Arabic-Indic digit characters {@code ٠}–{@code ٩}.
+	public static final String[] arabicNumbers = {"٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"};
 
 	private static final double LEAP_YEAR_DIVISION = 0.24219858156;
 	private static final int FIRST_DAY_OF_WEEK = 6;
 	private static final long DATE_LENGTH = 86_400_000L;
 
 	private static final Pattern JALALI_PARSE = Pattern.compile(
-		"^(\\d{4})[/-](\\d{1,2})[/-](\\d{1,2})(?:[ T](\\d{1,2}):(\\d{1,2})(?::(\\d{1,2}))?)?$");
+		"^(\\d{4})[/\\-.](\\d{1,2})[/\\-.](\\d{1,2})(?:[ T](\\d{1,2}):(\\d{1,2})(?::(\\d{1,2}))?)?$");
+
+	private static final Pattern QUERY_DATE = Pattern.compile(
+		"^(\\d{4})[/\\-.](\\d{1,2})[/\\-.](\\d{1,2})(?:[ T](\\d{1,2}):(\\d{2})(?::(\\d{2}))?(?:Z|[+-]\\d{2}:?\\d{2})?)?");
+
+	private static final Pattern FRAC_SECONDS = Pattern.compile("(\\d{2}:\\d{2}:\\d{2})\\.\\d+");
+
+	private static final Pattern NAN_PATTERN = Pattern.compile("nan", Pattern.CASE_INSENSITIVE);
 
 	private static final Pattern DATE_ONLY = Pattern.compile("^\\d{4}-\\d{2}-\\d{2}$");
 
@@ -81,7 +91,7 @@ public final class JalaliX implements Cloneable {
 		boolean isLeapYear = false;
 	}
 
-	/** Creates an instance for the current instant in UTC. */
+	// Creates an instance for the current instant in UTC.
 	public JalaliX() {
 		this.time = System.currentTimeMillis();
 	}
@@ -128,7 +138,7 @@ public final class JalaliX implements Cloneable {
 
 	}
 
-	// Date.UTC(y, m-1, d, h, mi, s) equivalent — civil components as UTC instant (ms truncated to seconds). 
+	// Date.UTC(y, m-1, d, h, mi, s) equivalent - civil components as UTC instant (ms truncated to seconds). 
 	private static long dateUtc(int y, int m, int d, int h, int mi, int s) {
 		return LocalDateTime.of(y, m, d, h, mi, s).toInstant(ZoneOffset.UTC).toEpochMilli();
 	}
@@ -452,7 +462,7 @@ public final class JalaliX implements Cloneable {
 		}
 	}
 
-	/** {@inheritDoc} */
+	// {@inheritDoc}
 	@Override
 	public String toString() {
 		JalaliDate j = toJalali();
@@ -461,73 +471,73 @@ public final class JalaliX implements Cloneable {
 			+ " " + j.hours + ":" + addZero(j.min) + ":" + addZero(j.sec) + getUTCTimezone();
 	}
 
-	/** Jalali weekday, day, month name, and year. */
+	// Jalali weekday, day, month name, and year.
 	public String toDateString() {
 		JalaliDate j = toJalali();
 
 		return getWeekDayName() + " " + addZero(j.day) + " " + getJalaliMonthName(j.month) + " " + addZero(j.year);
 	}
 
-	/** Jalali date as {@code YYYY/MM/DD}. */
+	// Jalali date as {@code YYYY/MM/DD}.
 	public String toLocaleDateString() {
 		JalaliDate j = toJalali();
 
 		return addZero(j.year) + "/" + addZero(j.month) + "/" + addZero(j.day);
 	}
 
-	/** Wall-clock time with Persian meridiem. */
+	// Wall-clock time with Persian meridiem.
 	public String toLocaleTimeString() {
 		JalaliDate j = toJalali();
 
 		return (j.hours % 12) + ":" + addZero(j.min) + ":" + addZero(j.sec) + " " + getMeridiem();
 	}
 
-	/** Jalali year. */
+	// Jalali year.
 	public int getFullYear() {
 		return toJalali().year;
 	}
 
-	/** Jalali month 1..12 (Farvardin = 1). */
+	// Jalali month 1..12 (Farvardin = 1).
 	public int getMonth() {
 		return toJalali().month;
 	}
 
-	/** Jalali day of month. */
+	// Jalali day of month.
 	public int getDate() {
 		return toJalali().day;
 	}
 
-	/** Weekday index with Saturday = 0. */
+	// Weekday index with Saturday = 0.
 	public int getDay() {
 		return (getWallWeekday() - FIRST_DAY_OF_WEEK + 7 + 1) % 7;
 	}
 
-	/** Wall-clock hour in the current timezone (0..23). */
+	// Wall-clock hour in the current timezone (0..23).
 	public int getHours() {
 		return getWallParts().hour;
 	}
 
-	/** Wall-clock minute. */
+	// Wall-clock minute.
 	public int getMinutes() {
 		return getWallParts().minute;
 	}
 
-	/** Wall-clock second. */
+	// Wall-clock second.
 	public int getSeconds() {
 		return getWallParts().second;
 	}
 
-	/** Milliseconds within the second. */
+	// Milliseconds within the second.
 	public int getMilliseconds() {
 		return Math.floorMod(time, 1000);
 	}
 
-	/** UTC Unix epoch milliseconds. */
+	// UTC Unix epoch milliseconds.
 	public long getTime() {
 		return time;
 	}
 
-	/** Sets the UTC instant; returns the new epoch milliseconds. */
+	// Sets the UTC instant; returns the new epoch milliseconds.
 	public long setTime(long t) {
 		this.time = t;
 		reset();
@@ -535,7 +545,7 @@ public final class JalaliX implements Cloneable {
 		return getTime();
 	}
 
-	/** Sets milliseconds; returns the new epoch milliseconds. */
+	// Sets milliseconds; returns the new epoch milliseconds.
 	public long setMilliseconds(int ms) {
 		WallParts wall = getWallParts();
 		time = wallToUtc(wall.year, wall.month, wall.day, wall.hour, wall.minute, wall.second, ms);
@@ -544,12 +554,12 @@ public final class JalaliX implements Cloneable {
 		return getTime();
 	}
 
-	/** Sets seconds; returns the new epoch milliseconds. */
+	// Sets seconds; returns the new epoch milliseconds.
 	public long setSeconds(int sec) {
 		return setSeconds(sec, getWallParts().ms);
 	}
 
-	/** Sets seconds and milliseconds; returns the new epoch milliseconds. */
+	// Sets seconds and milliseconds; returns the new epoch milliseconds.
 	public long setSeconds(int sec, int ms) {
 		WallParts wall = getWallParts();
 		time = wallToUtc(wall.year, wall.month, wall.day, wall.hour, wall.minute, sec, ms);
@@ -558,19 +568,19 @@ public final class JalaliX implements Cloneable {
 		return getTime();
 	}
 
-	/** Sets minutes; returns the new epoch milliseconds. */
+	// Sets minutes; returns the new epoch milliseconds.
 	public long setMinutes(int min) {
 		WallParts w = getWallParts();
 
 		return setMinutes(min, w.second, w.ms);
 	}
 
-	/** Sets minutes and seconds; returns the new epoch milliseconds. */
+	// Sets minutes and seconds; returns the new epoch milliseconds.
 	public long setMinutes(int min, int sec) {
 		return setMinutes(min, sec, getWallParts().ms);
 	}
 
-	/** Sets minutes, seconds, and milliseconds; returns the new epoch milliseconds. */
+	// Sets minutes, seconds, and milliseconds; returns the new epoch milliseconds.
 	public long setMinutes(int min, int sec, int ms) {
 		WallParts wall = getWallParts();
 		time = wallToUtc(wall.year, wall.month, wall.day, wall.hour, min, sec, ms);
@@ -579,26 +589,26 @@ public final class JalaliX implements Cloneable {
 		return getTime();
 	}
 
-	/** Sets hours; returns the new epoch milliseconds. */
+	// Sets hours; returns the new epoch milliseconds.
 	public long setHours(int hours) {
 		WallParts w = getWallParts();
 
 		return setHours(hours, w.minute, w.second, w.ms);
 	}
 
-	/** Sets hours and minutes; returns the new epoch milliseconds. */
+	// Sets hours and minutes; returns the new epoch milliseconds.
 	public long setHours(int hours, int min) {
 		WallParts w = getWallParts();
 
 		return setHours(hours, min, w.second, w.ms);
 	}
 
-	/** Sets hours, minutes, and seconds; returns the new epoch milliseconds. */
+	// Sets hours, minutes, and seconds; returns the new epoch milliseconds.
 	public long setHours(int hours, int min, int sec) {
 		return setHours(hours, min, sec, getWallParts().ms);
 	}
 
-	/** Sets wall-clock time fields; returns the new epoch milliseconds. */
+	// Sets wall-clock time fields; returns the new epoch milliseconds.
 	public long setHours(int hours, int min, int sec, int ms) {
 		WallParts wall = getWallParts();
 		time = wallToUtc(wall.year, wall.month, wall.day, hours, min, sec, ms);
@@ -607,7 +617,7 @@ public final class JalaliX implements Cloneable {
 		return getTime();
 	}
 
-	/** Sets Jalali day of month; returns the new epoch milliseconds. */
+	// Sets Jalali day of month; returns the new epoch milliseconds.
 	public long setDate(int date) {
 		JalaliDate j = toJalali();
 		normalizeDate(date - j.day);
@@ -616,7 +626,7 @@ public final class JalaliX implements Cloneable {
 		return getTime();
 	}
 
-	/** Sets Jalali month 0..11 (Farvardin = 0); returns the new epoch milliseconds. */
+	// Sets Jalali month 0..11 (Farvardin = 0); returns the new epoch milliseconds.
 	public long setMonth(int month) {
 		return setMonth(month, null);
 	}
@@ -639,12 +649,12 @@ public final class JalaliX implements Cloneable {
 		return getTime();
 	}
 
-	/** Sets Jalali year; returns the new epoch milliseconds. */
+	// Sets Jalali year; returns the new epoch milliseconds.
 	public long setFullYear(int year) {
 		return setFullYear(year, null, null);
 	}
 
-	/** Sets Jalali year and optional month 0..11; returns the new epoch milliseconds. */
+	// Sets Jalali year and optional month 0..11; returns the new epoch milliseconds.
 	public long setFullYear(int year, Integer month) {
 		return setFullYear(year, month, null);
 	}
@@ -713,12 +723,12 @@ public final class JalaliX implements Cloneable {
 		}
 	}
 
-	/** Creates from a number, string, {@link Instant}, {@link TemporalAccessor}, or {@link JalaliX}. */
+	// Creates from a number, string, {@link Instant}, {@link TemporalAccessor}, or {@link JalaliX}.
 	public static JalaliX create(Object date) {
 		return create(date, null);
 	}
 
-	/** Creates from a date value with optional timezone. */
+	// Creates from a date value with optional timezone.
 	public static JalaliX create(Object date, JalaliOptions options) {
 		JalaliX output = new JalaliX(parseInput(date));
 
@@ -729,12 +739,12 @@ public final class JalaliX implements Cloneable {
 		return output;
 	}
 
-	/** Parses a Jalali {@code YYYY/MM/DD} (optional time) string in UTC. */
+	// Parses a Jalali {@code YYYY/MM/DD} (optional time) string in UTC.
 	public static JalaliX parseJalali(String value) {
 		return parseJalali(value, null);
 	}
 
-	/** Parses a Jalali date string with optional timezone. */
+	// Parses a Jalali date string with optional timezone.
 	public static JalaliX parseJalali(String value, JalaliOptions options) {
 		String normalized = fromPersian(String.valueOf(value)).trim();
 		Matcher match = JALALI_PARSE.matcher(normalized);
@@ -761,7 +771,7 @@ public final class JalaliX implements Cloneable {
 		return output;
 	}
 
-	/** Returns whether {@code date} can be turned into a {@link JalaliX}. */
+	// Returns whether {@code date} can be turned into a {@link JalaliX}.
 	public static boolean isValidDate(Object date) {
 		if (date instanceof JalaliX) return true;
 		if (date instanceof Instant) return true;
@@ -781,7 +791,7 @@ public final class JalaliX implements Cloneable {
 		return false;
 	}
 
-	/** Replaces Latin digits with Persian digits. */
+	// Replaces Latin digits with Persian digits.
 	public static String toPersian(String str) {
 		String out = str;
 
@@ -792,23 +802,156 @@ public final class JalaliX implements Cloneable {
 		return out;
 	}
 
-	/** Replaces Persian digits with Latin digits. */
+	// Replaces Persian and Arabic-Indic digits with Latin digits.
 	public static String fromPersian(String str) {
 		String out = str;
 
 		for (int i = 0; i <= 9; i++) {
 			out = out.replace(persianNumbers[i], String.valueOf(i));
+			out = out.replace(arabicNumbers[i], String.valueOf(i));
 		}
 
 		return out;
 	}
 
-	/** Returns true if {@code date} is strictly before {@code comparing}. */
+	private static boolean isNumericString(String s) {
+		if (s.isEmpty()) return false;
+
+		try {
+			Double.parseDouble(s);
+
+			return true;
+		} catch (NumberFormatException e) {
+			return false;
+		}
+	}
+
+	// Whether year/month/day is a valid Jalali civil date (year &gt;= 1).
+	private static boolean isValidJalaliCivilDate(int year, int month, int day) {
+		if (year < 1 || month < 1 || month > 12 || day < 1) return false;
+		if (month <= 6) return day <= 31;
+		if (month <= 11) return day <= 30;
+
+		boolean isLeap = new JalaliX(0L).checkLeapYear(year);
+
+		return day <= (isLeap ? 30 : 29);
+	}
+
+	/** Whether year/month/day is a valid Gregorian civil date. */
+	private static boolean isValidGregorianDate(int year, int month, int day) {
+		if (month < 1 || month > 12 || day < 1) return false;
+
+		try {
+			LocalDate d = LocalDate.of(year, month, day);
+
+			return d.getYear() == year && d.getMonthValue() == month && d.getDayOfMonth() == day;
+		} catch (DateTimeException e) {
+			return false;
+		}
+	}
+
+	private static Object normalizeQueryTimestamp(long timestamp, JalaliQueryOptions options) {
+		long ts = timestamp;
+
+		if (ts > 9_999_999_999L) ts = (long) Math.floor(ts / 1000.0);
+		if (ts <= 0) return null;
+
+		JalaliOptions opts = options != null && options.timezone != null ? new JalaliOptions(options.timezone) : null;
+		JalaliX created = create(ts * 1000, opts);
+
+		return created.format("YYYY-MM-DD HH:mm:ss", JalaliFormatOptions.gregorian());
+	}
+
+	/**
+	 * Soft-normalizes loose query / form date inputs into a Gregorian {@code Y-m-d H:i:s} string.
+	 *
+	 * <p>Handles empty/sentinel values ({@code null}, {@code "null"}, {@code ""}, {@code "undefined"},
+	 * {@code "Invalid Date"}, values containing {@code "NaN"}), unix timestamps (seconds or
+	 * milliseconds), Persian / Arabic-Indic digits, {@code /} {@code -} {@code .} separators,
+	 * fractional seconds, optional {@code Z} / offset suffixes, and auto-detects Jalali vs
+	 * Gregorian by year band: years in {@code jalaliYearMin...jalaliYearMax} (default
+	 * {@code 1...1899}) are treated as Jalali when the civil date is valid; otherwise Gregorian.
+	 *
+	 * <p>Invalid or unrecognized values are returned cleaned (digits normalized) rather than
+	 * throwing; sentinels and non-positive timestamps return {@code null}. Non-{@link String} /
+	 * non-numeric values pass through unchanged.
+	 *
+	 * @param value raw query value
+	 * @return {@code null}, Gregorian {@code Y-m-d H:i:s}, cleaned string, or the original value
+	 */
+	public static Object normalizeQueryDate(Object value) {
+		return normalizeQueryDate(value, null);
+	}
+
+	/** Like {@link #normalizeQueryDate(Object)} with explicit timezone / Jalali year-band options. */
+	public static Object normalizeQueryDate(Object value, JalaliQueryOptions options) {
+		if (value == null) return null;
+
+		if (value instanceof String) {
+			String s = (String) value;
+
+			if (s.equals("null") || s.isEmpty() || s.equals("undefined")
+				|| s.equalsIgnoreCase("invalid date") || NAN_PATTERN.matcher(s).find()) {
+				return null;
+			}
+		}
+
+		if (value instanceof Number && !(value instanceof String)) {
+			return normalizeQueryTimestamp(((Number) value).longValue(), options);
+		}
+
+		if (!(value instanceof String)) return value;
+
+		String value_ = (String) value;
+		String trimmed = value_.trim();
+
+		if (isNumericString(trimmed)) {
+			return normalizeQueryTimestamp((long) Double.parseDouble(trimmed), options);
+		}
+
+		String digits = fromPersian(value_);
+		digits = FRAC_SECONDS.matcher(digits).replaceAll("$1");
+
+		Matcher match = QUERY_DATE.matcher(digits);
+
+		if (!match.find() || match.start() != 0) return digits;
+
+		int year = Integer.parseInt(match.group(1));
+		int month = Integer.parseInt(match.group(2));
+		int day = Integer.parseInt(match.group(3));
+		int hour = match.group(4) != null ? Integer.parseInt(match.group(4)) : 0;
+		int minute = match.group(5) != null ? Integer.parseInt(match.group(5)) : 0;
+		int second = match.group(6) != null ? Integer.parseInt(match.group(6)) : 0;
+
+		int jalaliYearMin = options != null && options.jalaliYearMin != null ? options.jalaliYearMin : 1;
+		int jalaliYearMax = options != null && options.jalaliYearMax != null ? options.jalaliYearMax : 1899;
+
+		if (year >= jalaliYearMin && year <= jalaliYearMax && isValidJalaliCivilDate(year, month, day)) {
+			String jalaliStr = String.format("%04d/%02d/%02d %02d:%02d:%02d", year, month, day, hour, minute, second);
+
+			try {
+				JalaliOptions opts = options != null && options.timezone != null ? new JalaliOptions(options.timezone) : null;
+				JalaliX parsed = parseJalali(jalaliStr, opts);
+
+				return parsed.format("YYYY-MM-DD HH:mm:ss", JalaliFormatOptions.gregorian());
+			} catch (IllegalArgumentException e) {
+				// fall through to Gregorian / cleaned
+			}
+		}
+
+		if (isValidGregorianDate(year, month, day)) {
+			return String.format("%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second);
+		}
+
+		return digits;
+	}
+
+	// Returns true if {@code date} is strictly before {@code comparing}.
 	public static boolean compare(JalaliX date, JalaliX comparing) {
 		return date.getTime() < comparing.getTime();
 	}
 
-	/** Creates a copy with the same instant and timezone. */
+	// Creates a copy with the same instant and timezone.
 	@Override
 	public JalaliX clone() {
 		JalaliX output = new JalaliX(time);
@@ -817,12 +960,12 @@ public final class JalaliX implements Cloneable {
 		return output;
 	}
 
-	/** IANA timezone id for this instance. */
+	// IANA timezone id for this instance.
 	public String getTimezone() {
 		return timezone;
 	}
 
-	/** Jalali week-of-year (1-based). */
+	// Jalali week-of-year (1-based).
 	public int getWeekOfYear() {
 		int dayOfYear = getDayOfYear();
 		int dayOfWeek = new JalaliX(time).setTimezone(timezone).getStartOfYear().getDayISO();
@@ -830,7 +973,7 @@ public final class JalaliX implements Cloneable {
 		return (int) Math.ceil((dayOfYear + dayOfWeek - 1) / 7.0);
 	}
 
-	/** Day of Jalali year (1..365/366). */
+	// Day of Jalali year (1..365/366).
 	public int getDayOfYear() {
 		JalaliDate j = toJalali();
 		int output = j.day;
@@ -841,19 +984,19 @@ public final class JalaliX implements Cloneable {
 		return output;
 	}
 
-	/** ISO-style weekday with Saturday = 1 .. Friday = 7. */
+	// ISO-style weekday with Saturday = 1 .. Friday = 7.
 	public int getDayISO() {
 		return ((getDay() + 6) % 7) + 1;
 	}
 
-	/** 12-hour clock hour (1..12 style used by format tokens). */
+	// 12-hour clock hour (1..12 style used by format tokens).
 	public int getHoursISO() {
 		int hours = getHours();
 
 		return hours > 12 ? hours - 12 : hours;
 	}
 
-	/** Persian meridiem ({@code ق.ظ.} / {@code ب.ظ.}). */
+	// Persian meridiem ({@code ق.ظ.} / {@code ب.ظ.}).
 	public String getMeridiem() {
 		JalaliDate j = toJalali();
 
@@ -864,29 +1007,29 @@ public final class JalaliX implements Cloneable {
 		return getHours() >= 12 ? pmGregorian : amGregorian;
 	}
 
-	/** Moves to the first moment of the Jalali year. */
+	// Moves to the first moment of the Jalali year.
 	public JalaliX getStartOfYear() {
 		return addDays(-1 * getDayOfYear() + 1).getStartOfDay();
 	}
 
-	/** Moves to the first moment of the Jalali month. */
+	// Moves to the first moment of the Jalali month.
 	public JalaliX getStartOfMonth() {
 		return addDays(-1 * getDate() + 1).getStartOfDay();
 	}
 
-	/** Moves to the first moment of the week (Saturday). */
+	// Moves to the first moment of the week (Saturday).
 	public JalaliX getStartOfWeek() {
 		return addDays(-1 * getDayISO() + 1).getStartOfDay();
 	}
 
-	/** Moves to 00:00:00.000 of the current wall day. */
+	// Moves to 00:00:00.000 of the current wall day.
 	public JalaliX getStartOfDay() {
 		setHours(0, 0, 0, 0);
 
 		return this;
 	}
 
-	/** Moves to the last moment of the Jalali year. */
+	// Moves to the last moment of the Jalali year.
 	public JalaliX getEndOfYear() {
 		JalaliDate j = toJalali();
 		int lastDay = j.isLeapYear ? 366 : 365;
@@ -894,7 +1037,7 @@ public final class JalaliX implements Cloneable {
 		return addDays(lastDay - getDayOfYear()).getEndOfDay();
 	}
 
-	/** Moves to the last moment of the Jalali month. */
+	// Moves to the last moment of the Jalali month.
 	public JalaliX getEndOfMonth() {
 		JalaliDate j = toJalali();
 		int lastDay = 31;
@@ -904,12 +1047,12 @@ public final class JalaliX implements Cloneable {
 		return addDays(lastDay - getDate()).getEndOfDay();
 	}
 
-	/** Moves to the last moment of the week (Friday). */
+	// Moves to the last moment of the week (Friday).
 	public JalaliX getEndOfWeek() {
 		return addDays(7 - getDayISO()).getEndOfDay();
 	}
 
-	/** Moves to 23:59:59.999 of the current wall day. */
+	// Moves to 23:59:59.999 of the current wall day.
 	public JalaliX getEndOfDay() {
 		setHours(23, 59, 59, 999);
 		return this;
@@ -926,7 +1069,7 @@ public final class JalaliX implements Cloneable {
 		return output;
 	}
 
-	/** Adds Jalali years in place and returns {@code this}. */
+	// Adds Jalali years in place and returns {@code this}.
 	public JalaliX addYears(int year) {
 		JalaliDate j = toJalali();
 		normalizeJalali(j, j.year + year, j.month, j.day);
@@ -935,7 +1078,7 @@ public final class JalaliX implements Cloneable {
 		return this;
 	}
 
-	/** Adds Jalali months in place and returns {@code this}. */
+	// Adds Jalali months in place and returns {@code this}.
 	public JalaliX addMonths(int month) {
 		JalaliDate j = toJalali();
 		normalizeJalali(j, j.year, j.month + month, j.day);
@@ -944,7 +1087,7 @@ public final class JalaliX implements Cloneable {
 		return this;
 	}
 
-	/** Adds weeks in place and returns {@code this}. */
+	// Adds weeks in place and returns {@code this}.
 	public JalaliX addWeeks(int weeks) {
 		normalizeDate(weeks * 7);
 		reset();
@@ -952,7 +1095,7 @@ public final class JalaliX implements Cloneable {
 		return this;
 	}
 
-	/** Adds days in place and returns {@code this}. */
+	// Adds days in place and returns {@code this}.
 	public JalaliX addDays(int days) {
 		normalizeDate(days);
 		reset();
@@ -960,7 +1103,7 @@ public final class JalaliX implements Cloneable {
 		return this;
 	}
 
-	/** Gregorian ISO date {@code YYYY-MM-DD} in the current timezone. */
+	// Gregorian ISO date {@code YYYY-MM-DD} in the current timezone.
 	public String toISODate() {
 		return toISODate("gregorian");
 	}
@@ -977,17 +1120,17 @@ public final class JalaliX implements Cloneable {
 		return wall.year + "-" + addZero(wall.month) + "-" + addZero(wall.day);
 	}
 
-	/** Formats with the given pattern (Jalali calendar, Latin digits). */
+	// Formats with the given pattern (Jalali calendar, Latin digits).
 	public String format(String str) {
 		return format(str, false, false);
 	}
 
-	/** Formats with the given pattern; optionally Persian digits. */
+	// Formats with the given pattern; optionally Persian digits.
 	public String format(String str, boolean persianDigits) {
 		return format(str, persianDigits, false);
 	}
 
-	/** Formats with the given pattern and options. */
+	// Formats with the given pattern and options.
 	public String format(String str, JalaliFormatOptions options) {
 		boolean persian = options != null && options.persianDigits;
 		boolean gregorian = options != null && "gregorian".equals(options.calendar);

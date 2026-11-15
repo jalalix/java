@@ -2,12 +2,12 @@ package com.jalalix.java;
 
 /** Options for {@link JalaliX#format(String, JalaliFormatOptions)}. */
 public final class JalaliFormatOptions {
-	/** {@code "jalali"} (default) or {@code "gregorian"}. */
+	// {@code "jalali"} (default) or {@code "gregorian"}.
 	public String calendar;
-	/** When true, digits are rendered with Persian numerals. */
+	// When true, digits are rendered with Persian numerals.
 	public boolean persianDigits;
 
-	/** Creates options with default calendar and Latin digits. */
+	// Creates options with default calendar and Latin digits.
 	public JalaliFormatOptions() {}
 
 	/**
@@ -19,12 +19,12 @@ public final class JalaliFormatOptions {
 		this.persianDigits = persianDigits;
 	}
 
-	/** Options that format with Persian digits. */
+	// Options that format with Persian digits.
 	public static JalaliFormatOptions persianDigits() {
 		return new JalaliFormatOptions(null, true);
 	}
 
-	/** Options that format in the Gregorian calendar. */
+	// Options that format in the Gregorian calendar.
 	public static JalaliFormatOptions gregorian() {
 		return new JalaliFormatOptions("gregorian", false);
 	}
